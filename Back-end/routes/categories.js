@@ -1,21 +1,22 @@
+// routes/categories.js
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { isAdmin } = require('../middlewares');
 
-// ดึงรายการหมวดหมู่ทั้งหมด (เฉพาะ Admin เท่านั้น)
-router.get('/', isAdmin, (req, res) => {
+// ดึงรายการหมวดหมู่ทั้งหมด
+router.get('/', (req, res) => {
   db.query('SELECT * FROM categories', (err, results) => {
     if (err) {
+      console.error('Error fetching categories:', err);
       res.status(500).send('เกิดข้อผิดพลาดในการดึงข้อมูลหมวดหมู่');
     } else {
-      res.json(results);
+      res.status(200).json(results);
     }
   });
 });
 
 // เพิ่มหมวดหมู่ใหม่ (เฉพาะ Admin เท่านั้น)
-router.post('/', isAdmin, (req, res) => {
+router.post('/', (req, res) => {
   const { name } = req.body;
 
   if (!name || name.trim() === '') {
@@ -24,6 +25,7 @@ router.post('/', isAdmin, (req, res) => {
 
   db.query('INSERT INTO categories (name) VALUES (?)', [name], (err, results) => {
     if (err) {
+      console.error('Error adding category:', err);
       res.status(500).send('เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่');
     } else if (results.affectedRows === 0) {
       res.status(500).send('ไม่สามารถเพิ่มหมวดหมู่ได้');
@@ -34,7 +36,7 @@ router.post('/', isAdmin, (req, res) => {
 });
 
 // แก้ไขหมวดหมู่ (เฉพาะ Admin เท่านั้น)
-router.put('/:id', isAdmin, (req, res) => {
+router.put('/:id', (req, res) => {
   const { name } = req.body;
   const { id } = req.params;
 
@@ -44,6 +46,7 @@ router.put('/:id', isAdmin, (req, res) => {
 
   db.query('UPDATE categories SET name = ? WHERE category_id = ?', [name, id], (err, results) => {
     if (err) {
+      console.error('Error updating category:', err);
       res.status(500).send('เกิดข้อผิดพลาดในการแก้ไขหมวดหมู่');
     } else if (results.affectedRows === 0) {
       res.status(404).send('ไม่พบหมวดหมู่ที่ต้องการแก้ไข');
@@ -54,11 +57,12 @@ router.put('/:id', isAdmin, (req, res) => {
 });
 
 // ลบหมวดหมู่ (เฉพาะ Admin เท่านั้น)
-router.delete('/:id', isAdmin, (req, res) => {
+router.delete('/:id', (req, res) => {
   const { id } = req.params;
 
   db.query('DELETE FROM categories WHERE category_id = ?', [id], (err, results) => {
     if (err) {
+      console.error('Error deleting category:', err);
       res.status(500).send('เกิดข้อผิดพลาดในการลบหมวดหมู่');
     } else if (results.affectedRows === 0) {
       res.status(404).send('ไม่พบหมวดหมู่ที่ต้องการลบ');

@@ -44,20 +44,20 @@ function ManageCategoriesPage() {
     }
 
     axios
-      .post(
-        `${API_BASE_URL}/admin/categories`,
-        { name: newCategory },
-        { withCredentials: true }
-      )
+      .post(`${API_BASE_URL}/admin/categories`, { name: newCategory }, { withCredentials: true })
       .then(() => {
         alert('เพิ่มหมวดหมู่ใหม่สำเร็จ');
         setNewCategory('');
         setIsAdding(false);
-        fetchCategories(); // เรียก fetchCategories เพื่อรีเฟรชรายการหมวดหมู่
+        fetchCategories();
       })
       .catch((error) => {
         console.error('เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่:', error);
-        alert('เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่');
+        if (error.response) {
+          alert(`เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่: ${error.response.data}`);
+        } else {
+          alert('เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่');
+        }
       });
   };
 
@@ -72,11 +72,15 @@ function ManageCategoriesPage() {
         .delete(`${API_BASE_URL}/admin/categories/${categoryId}`, { withCredentials: true })
         .then(() => {
           alert('ลบหมวดหมู่เรียบร้อยแล้ว');
-          fetchCategories(); // รีเฟรชรายการหมวดหมู่หลังลบ
+          fetchCategories();
         })
         .catch((error) => {
           console.error('เกิดข้อผิดพลาดในการลบหมวดหมู่:', error);
-          alert('เกิดข้อผิดพลาดในการลบหมวดหมู่');
+          if (error.response) {
+            alert(`เกิดข้อผิดพลาดในการลบหมวดหมู่: ${error.response.data}`);
+          } else {
+            alert('เกิดข้อผิดพลาดในการลบหมวดหมู่');
+          }
         });
     }
   };
@@ -92,20 +96,20 @@ function ManageCategoriesPage() {
     }
 
     axios
-      .put(
-        `${API_BASE_URL}/admin/categories/${categoryId}`,
-        { name: editCategoryName },
-        { withCredentials: true }
-      )
+      .put(`${API_BASE_URL}/admin/categories/${categoryId}`, { name: editCategoryName }, { withCredentials: true })
       .then(() => {
         alert('แก้ไขหมวดหมู่เรียบร้อยแล้ว');
         setIsEditing(null);
         setEditCategoryName('');
-        fetchCategories(); // รีเฟรชรายการหมวดหมู่หลังแก้ไข
+        fetchCategories();
       })
       .catch((error) => {
         console.error('เกิดข้อผิดพลาดในการแก้ไขหมวดหมู่:', error);
-        alert('เกิดข้อผิดพลาดในการแก้ไขหมวดหมู่');
+        if (error.response) {
+          alert(`เกิดข้อผิดพลาดในการแก้ไขหมวดหมู่: ${error.response.data}`);
+        } else {
+          alert('เกิดข้อผิดพลาดในการแก้ไขหมวดหมู่');
+        }
       });
   };
 

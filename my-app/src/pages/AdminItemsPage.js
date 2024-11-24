@@ -3,6 +3,7 @@ import AdminSidebar from '../components/AdminSidebar';
 
 function AdminItemsPage() {
   const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -16,17 +17,36 @@ function AdminItemsPage() {
   // Base URL จาก environment variables
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
-  // Fetch items from backend (useCallback เพื่อคงฟังก์ชันนี้)
+  // Fetch items from backend
   const fetchItems = useCallback(() => {
     fetch(`${API_BASE_URL}/admin/items`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => setItems(data))
       .catch((err) => console.error('Error fetching items:', err));
   }, [API_BASE_URL]);
 
+  // Fetch categories from backend
+  const fetchCategories = useCallback(() => {
+    fetch(`${API_BASE_URL}/admin/categories`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => setCategories(data))
+      .catch((err) => console.error('Error fetching categories:', err));
+  }, [API_BASE_URL]);
+
   useEffect(() => {
     fetchItems();
-  }, [fetchItems]);
+    fetchCategories();
+  }, [fetchItems, fetchCategories]);
 
   // Handle form inputs
   const handleChange = (e) => {
@@ -116,8 +136,8 @@ function AdminItemsPage() {
 
   return (
     <div className="flex">
-      <AdminSidebar /> {/* ใส่ Sidebar ที่ด้านซ้าย */}
-      <div className="ml-64 p-8 w-full"> {/* ปรับแก้ไขเพื่อให้ Sidebar ไม่ถูกบัง */}
+      <AdminSidebar />
+      <div className="ml-64 p-8 w-full">
         <h1 className="text-2xl font-bold mb-4">จัดการสินค้า</h1>
         <form onSubmit={handleSubmit} className="mb-6">
           <input
@@ -146,15 +166,20 @@ function AdminItemsPage() {
             className="border p-2 mr-2"
             required
           />
-          <input
-            type="number"
+          <select
             name="category_id"
-            placeholder="หมวดหมู่"
             value={formData.category_id}
             onChange={handleChange}
             className="border p-2 mr-2"
             required
-          />
+          >
+            <option value="">เลือกหมวดหมู่</option>
+            {categories.map((category) => (
+              <option key={category.category_id} value={category.category_id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
           <input
             type="file"
             name="image"
@@ -194,8 +219,12 @@ function AdminItemsPage() {
                 <td className="border p-2">{item.name}</td>
                 <td className="border p-2">{item.description}</td>
                 <td className="border p-2">{item.price}</td>
-                <td className="border p-2">{item.category_id}</td>
-                <td className="border p-2">{item.availability ? 'พร้อมจำหน่าย' : 'ไม่พร้อมจำหน่าย'}</td>
+                <td className="border p-2">
+                  {categories.find((c) => c.category_id === item.category_id)?.name || 'ไม่ทราบ'}
+                </td>
+                <td className="border p-2">
+                  {item.availability ? 'พร้อมจำหน่าย' : 'ไม่พร้อมจำหน่าย'}
+                </td>
                 <td className="border p-2">
                   <button
                     onClick={() => handleEdit(item)}
