@@ -1,4 +1,7 @@
+// AdminItemsPage.js
+
 import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import AdminSidebar from '../components/AdminSidebar';
 
 function AdminItemsPage() {
@@ -9,7 +12,7 @@ function AdminItemsPage() {
     description: '',
     price: '',
     category_id: '',
-    availability: true,
+    availability: 'true', // เปลี่ยนเป็น string เพื่อสะดวกในการจัดการกับ <select>
   });
   const [imageFile, setImageFile] = useState(null);
   const [editItemId, setEditItemId] = useState(null);
@@ -19,27 +22,21 @@ function AdminItemsPage() {
 
   // Fetch items from backend
   const fetchItems = useCallback(() => {
-    fetch(`${API_BASE_URL}/admin/items`)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        return res.json();
+    axios
+      .get(`${API_BASE_URL}/admin/items`)
+      .then((response) => {
+        setItems(response.data);
       })
-      .then((data) => setItems(data))
       .catch((err) => console.error('Error fetching items:', err));
   }, [API_BASE_URL]);
 
   // Fetch categories from backend
   const fetchCategories = useCallback(() => {
-    fetch(`${API_BASE_URL}/admin/categories`)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        return res.json();
+    axios
+      .get(`${API_BASE_URL}/admin/categories`)
+      .then((response) => {
+        setCategories(response.data);
       })
-      .then((data) => setCategories(data))
       .catch((err) => console.error('Error fetching categories:', err));
   }, [API_BASE_URL]);
 
@@ -63,75 +60,52 @@ function AdminItemsPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // แปลงประเภทข้อมูลก่อนส่ง
+    const updatedFormData = {
+      ...formData,
+      availability: formData.availability === 'true', // แปลงเป็น boolean
+      category_id: parseInt(formData.category_id, 10), // แปลงเป็น integer
+      price: parseFloat(formData.price), // แปลงเป็น float
+    };
+
     const url = editItemId
       ? `${API_BASE_URL}/admin/items/edit/${editItemId}`
       : `${API_BASE_URL}/admin/items/add`;
     const method = editItemId ? 'PUT' : 'POST';
 
     const formDataToSend = new FormData();
-    formDataToSend.append('name', formData.name);
-    formDataToSend.append('description', formData.description);
-    formDataToSend.append('price', formData.price);
-    formDataToSend.append('category_id', formData.category_id);
-    formDataToSend.append('availability', formData.availability);
+    formDataToSend.append('name', updatedFormData.name);
+    formDataToSend.append('description', updatedFormData.description);
+    formDataToSend.append('price', updatedFormData.price);
+    formDataToSend.append('category_id', updatedFormData.category_id);
+    formDataToSend.append('availability', updatedFormData.availability);
     if (imageFile) {
       formDataToSend.append('image', imageFile);
     }
 
-    fetch(url, {
+    axios({
       method,
-      body: formDataToSend,
+      url,
+      data: formDataToSend,
+      withCredentials: true,
     })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error('Error saving item');
-        }
-        return res.text();
-      })
-      .then((message) => {
-        alert(message);
+      .then(() => {
+        alert('บันทึกข้อมูลสำเร็จ');
         fetchItems();
         setFormData({
           name: '',
           description: '',
           price: '',
           category_id: '',
-          availability: true,
+          availability: 'true', // รีเซ็ตเป็น 'true' string
         });
         setImageFile(null);
         setEditItemId(null);
       })
-      .catch((err) => alert('Error:', err.message));
-  };
-
-  // Delete Item
-  const handleDelete = (itemId) => {
-    if (!window.confirm('คุณต้องการลบสินค้านี้หรือไม่?')) return;
-
-    fetch(`${API_BASE_URL}/admin/items/delete/${itemId}`, { method: 'DELETE' })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error('Error deleting item');
-        }
-        return res.text();
-      })
-      .then((message) => {
-        alert(message);
-        fetchItems();
-      })
-      .catch((err) => alert('Error:', err.message));
-  };
-
-  // Start editing an item
-  const handleEdit = (item) => {
-    setFormData({
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      category_id: item.category_id,
-      availability: item.availability,
-    });
-    setEditItemId(item.item_id);
+      .catch((err) => {
+        console.error('Error:', err);
+        alert(`Error: ${err.response?.data?.error || err.message}`);
+      });
   };
 
   return (
@@ -192,8 +166,8 @@ function AdminItemsPage() {
             onChange={handleChange}
             className="border p-2 mr-2"
           >
-            <option value={true}>พร้อมจำหน่าย</option>
-            <option value={false}>ไม่พร้อมจำหน่าย</option>
+            <option value="true">พร้อมจำหน่าย</option>
+            <option value="false">ไม่พร้อมจำหน่าย</option>
           </select>
           <button type="submit" className="bg-blue-500 text-white px-4 py-2">
             {editItemId ? 'แก้ไขสินค้า' : 'เพิ่มสินค้า'}
@@ -209,7 +183,6 @@ function AdminItemsPage() {
               <th className="border p-2">ราคา</th>
               <th className="border p-2">หมวดหมู่</th>
               <th className="border p-2">สถานะ</th>
-              <th className="border p-2">การจัดการ</th>
             </tr>
           </thead>
           <tbody>
@@ -224,20 +197,6 @@ function AdminItemsPage() {
                 </td>
                 <td className="border p-2">
                   {item.availability ? 'พร้อมจำหน่าย' : 'ไม่พร้อมจำหน่าย'}
-                </td>
-                <td className="border p-2">
-                  <button
-                    onClick={() => handleEdit(item)}
-                    className="bg-yellow-500 text-white px-2 py-1 mr-2"
-                  >
-                    แก้ไข
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.item_id)}
-                    className="bg-red-500 text-white px-2 py-1"
-                  >
-                    ลบ
-                  </button>
                 </td>
               </tr>
             ))}

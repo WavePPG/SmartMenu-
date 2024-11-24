@@ -1,25 +1,32 @@
 // routes/items.js
+
 const express = require('express');
 const router = express.Router();
-const db = require('../db'); // ฐานข้อมูลที่คุณกำหนด
+const db = require('../db');
+const { isAdmin } = require('../middlewares');
 const multer = require('multer');
-const path = require('path');
 
 // Set up multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // กำหนดโฟลเดอร์ที่ใช้เก็บรูปภาพ
+    cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
+
 const upload = multer({ storage });
 
-// เพิ่มสินค้าใหม่
-router.post('/add', upload.single('image'), (req, res) => {
-  const { name, description, price, category_id, availability } = req.body;
+// เพิ่มสินค้าใหม่ (สำหรับ Admin เท่านั้น)
+router.post('/add', isAdmin, upload.single('image'), (req, res) => {
+  let { name, description, price, category_id, availability } = req.body;
   const imagePath = req.file ? req.file.path : null;
+
+  // แปลงประเภทข้อมูล
+  price = parseFloat(price);
+  category_id = parseInt(category_id, 10);
+  availability = availability === 'true' || availability === true ? 1 : 0;
 
   if (!name || !price || !category_id) {
     return res.status(400).send('กรุณากรอกข้อมูลให้ครบถ้วน');
@@ -28,7 +35,7 @@ router.post('/add', upload.single('image'), (req, res) => {
   db.query(
     'INSERT INTO items (name, description, price, category_id, image_url, availability) VALUES (?, ?, ?, ?, ?, ?)',
     [name, description, price, category_id, imagePath, availability],
-    (err, results) => {
+    (err) => {
       if (err) {
         return res.status(500).send('เกิดข้อผิดพลาดในการเพิ่มสินค้า');
       }
@@ -37,33 +44,19 @@ router.post('/add', upload.single('image'), (req, res) => {
   );
 });
 
-// แก้ไขสินค้า
-router.put('/edit/:item_id', upload.single('image'), (req, res) => {
-  const { name, description, price, category_id, availability } = req.body;
-  const { item_id } = req.params;
-  const imagePath = req.file ? req.file.path : null;
+// ดึงรายการสินค้าทั้งหมด
+router.get('/', (req, res) => {
+  const query = `
+    SELECT items.*, categories.name AS category_name 
+    FROM items 
+    JOIN categories ON items.category_id = categories.category_id
+  `;
 
-  db.query(
-    'UPDATE items SET name = ?, description = ?, price = ?, category_id = ?, image_url = IFNULL(?, image_url), availability = ? WHERE item_id = ?',
-    [name, description, price, category_id, imagePath, availability, item_id],
-    (err, results) => {
-      if (err) {
-        return res.status(500).send('เกิดข้อผิดพลาดในการแก้ไขสินค้า');
-      }
-      res.status(200).send('แก้ไขสินค้าสำเร็จ');
-    }
-  );
-});
-
-// ลบสินค้า
-router.delete('/delete/:item_id', (req, res) => {
-  const { item_id } = req.params;
-
-  db.query('DELETE FROM items WHERE item_id = ?', [item_id], (err, results) => {
+  db.query(query, (err, results) => {
     if (err) {
-      return res.status(500).send('เกิดข้อผิดพลาดในการลบสินค้า');
+      return res.status(500).send('เกิดข้อผิดพลาดในการดึงข้อมูลสินค้า');
     }
-    res.status(200).send('ลบสินค้าเรียบร้อยแล้ว');
+    res.json(results);
   });
 });
 

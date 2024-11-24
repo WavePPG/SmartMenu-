@@ -38,7 +38,7 @@ app.use(session({
 // Routes
 app.use('/api/auth', authRoute);
 app.use('/api/admin/users', adminUsersRoute);
-app.use('/api/items', itemsRoute);
+app.use('/api/admin/items', itemsRoute); // แก้ไขเส้นทาง items ให้ตรงกับ frontend
 app.use('/api/admin/categories', categoriesRoute);
 app.use('/api/admin/tables', tablesRoute);
 // หากมี orders.js ให้เพิ่มเส้นทางนี้
